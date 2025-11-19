@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'smartcard-backend/**'
   workflow_dispatch:
 
 jobs:
@@ -27,18 +29,19 @@ jobs:
         id: check_files
         uses: andstor/file-existence-action@v1
         with:
-          files: 'composer.json'
+          files: 'smartcard-backend/composer.json'
 
       - name: Run composer install if composer.json exists
         if: steps.check_files.outputs.files_exists == 'true'
-        run: composer validate --no-check-publish && composer install --prefer-dist --no-progress
-
+        run: |
+          cd smartcard-backend
+          composer validate --no-check-publish && composer install --prefer-dist --no-progress --no-dev --optimize-autoloader
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: php-app
-          path: .
+          path: smartcard-backend/
 
   deploy:
     runs-on: ubuntu-latest
