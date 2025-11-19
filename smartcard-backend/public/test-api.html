@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Smart Card API</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        input, button { padding: 10px; margin: 5px 0; width: 100%; }
+        button { background: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background: #45a049; }
+        pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Smart Card Backend API Tester</h1>
+    
+    <div class="section">
+        <h2>1. Register User</h2>
+        <input type="text" id="regFirstname" placeholder="First Name" value="John">
+        <input type="text" id="regLastname" placeholder="Last Name" value="Doe">
+        <input type="email" id="regEmail" placeholder="Email" value="test@example.com">
+        <input type="password" id="regPassword" placeholder="Password" value="password123">
+        <input type="password" id="regPasswordConfirm" placeholder="Confirm Password" value="password123">
+        <button onclick="register()">Register</button>
+        <pre id="regResult"></pre>
+    </div>
+
+    <div class="section">
+        <h2>2. Login</h2>
+        <input type="email" id="loginEmail" placeholder="Email" value="test@example.com">
+        <input type="password" id="loginPassword" placeholder="Password" value="password123">
+        <button onclick="login()">Login</button>
+        <pre id="loginResult"></pre>
+    </div>
+
+    <div class="section">
+        <h2>3. Get User Info (Requires Login)</h2>
+        <button onclick="getUser()">Get User</button>
+        <pre id="userResult"></pre>
+    </div>
+
+    <div class="section">
+        <h2>4. Create Card (Requires Login)</h2>
+        <input type="text" id="cardName" placeholder="Name" value="John Doe">
+        <input type="text" id="cardTitle" placeholder="Title" value="CEO">
+        <input type="text" id="cardCompany" placeholder="Company" value="Tech Corp">
+        <input type="email" id="cardEmail" placeholder="Email" value="john@techcorp.com">
+        <input type="tel" id="cardPhone" placeholder="Phone" value="+1234567890">
+        <button onclick="createCard()">Create Card</button>
+        <pre id="cardResult"></pre>
+    </div>
+
+    <div class="section">
+        <h2>5. Get All Cards (Requires Login)</h2>
+        <button onclick="getCards()">Get Cards</button>
+        <pre id="cardsResult"></pre>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api';
+        let authToken = localStorage.getItem('auth_token');
+
+        async function register() {
+            const result = document.getElementById('regResult');
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        firstname: document.getElementById('regFirstname').value,
+                        lastname: document.getElementById('regLastname').value,
+                        email: document.getElementById('regEmail').value,
+                        password: document.getElementById('regPassword').value,
+                        password_confirmation: document.getElementById('regPasswordConfirm').value
+                    })
+                });
+                
+                const data = await response.json();
+                result.className = response.ok ? 'success' : 'error';
+                result.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('auth_token', authToken);
+                    alert('✅ Registered successfully! Token saved.');
+                }
+            } catch (error) {
+                result.className = 'error';
+                result.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function login() {
+            const result = document.getElementById('loginResult');
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value
+                    })
+                });
+                
+                const data = await response.json();
+                result.className = response.ok ? 'success' : 'error';
+                result.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('auth_token', authToken);
+                    alert('✅ Logged in successfully! Token saved.');
+                }
+            } catch (error) {
+                result.className = 'error';
+                result.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function getUser() {
+            const result = document.getElementById('userResult');
+            if (!authToken) {
+                result.className = 'error';
+                result.textContent = 'Please login first!';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/user`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                result.className = response.ok ? 'success' : 'error';
+                result.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.className = 'error';
+                result.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function createCard() {
+            const result = document.getElementById('cardResult');
+            if (!authToken) {
+                result.className = 'error';
+                result.textContent = 'Please login first!';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/cards`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: document.getElementById('cardName').value,
+                        title: document.getElementById('cardTitle').value,
+                        company: document.getElementById('cardCompany').value,
+                        email: document.getElementById('cardEmail').value,
+                        phone: document.getElementById('cardPhone').value
+                    })
+                });
+                
+                const data = await response.json();
+                result.className = response.ok ? 'success' : 'error';
+                result.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.className = 'error';
+                result.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function getCards() {
+            const result = document.getElementById('cardsResult');
+            if (!authToken) {
+                result.className = 'error';
+                result.textContent = 'Please login first!';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/cards`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                result.className = response.ok ? 'success' : 'error';
+                result.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.className = 'error';
+                result.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Display current token status
+        if (authToken) {
+            console.log('Auth token found:', authToken.substring(0, 20) + '...');
+        }
+    </script>
+</body>
+</html>
